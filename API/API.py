@@ -232,7 +232,7 @@ relevant_documents:
         '''
         
         PROMPT = PromptTemplate(
-            template=prompt_template2,
+            template=prompt_template,
             input_variables=["context", "question"]
         )
         
