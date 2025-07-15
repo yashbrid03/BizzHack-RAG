@@ -46,7 +46,7 @@ def batchify(lst, batch_size):
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
-    index_name = request.form.get('index_name')
+    index_name = "bizzhack"
     namespace = request.form.get('namespace')
 
     if not index_name or not namespace:
