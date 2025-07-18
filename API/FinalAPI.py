@@ -36,6 +36,14 @@ model_name = "deepseek-r1-distill-llama-70b"
 
 pinecone_client = Pinecone(api_key=pinecone_api_key)
 
+# Initialize LLM
+llm = ChatGroq(
+    groq_api_key=groq_api_key,
+    model_name=model_name,
+    temperature=0.1,
+    max_tokens=1024
+)
+
 # LangChain setup
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
@@ -145,13 +153,7 @@ def initialize_rag_system():
         # Get the index
         index = pinecone_client.Index(index_name)
         
-        # Initialize LLM
-        llm = ChatGroq(
-            groq_api_key=groq_api_key,
-            model_name=model_name,
-            temperature=0.1,
-            max_tokens=1024
-        )
+        
         
         # Define prompt template
         prompt_template = '''
@@ -180,15 +182,15 @@ YOU ARE A MULTILINGUAL, DOMAIN-SPECIFIC CHATBOT ENGINE POWERED BY A LARGE LANGUA
 
 5. BUILD:
    - IF EVIDENCE IS FOUND: FORMULATE a CLEAR, CONCISE, FACT-BASED RESPONSE IN THE USER'S LANGUAGE
-   - IF NOT FOUND: RETURN A POLITE, STYLED HTML MESSAGE STATING THE INFORMATION IS NOT AVAILABLE
+   - IF NOT FOUND: RETURN A POLITE, HTML MESSAGE STATING THE INFORMATION IS NOT AVAILABLE
 
 6. EDGE CASES:
    - HANDLE ambiguous queries by inferring context from `chat_history`
    - IF MULTIPLE DOCUMENTS CONFLICT, STATE THAT CONFLICT POLITELY
 
 7. FINAL OUTPUT:
-   - WRAP the entire output in CLEAN, ACCESSIBLE HTML using **TailwindCSS-compatible utility classes**
-   - USE `<div>`, `<p>`, `<strong>`, `<ul>`, etc. with classes like `text-base`, `text-gray-700`, `rounded-lg`, etc.
+   - WRAP the entire output in CLEAN, ACCESSIBLE HTML using **PrimeNG-compatible utility classes**
+   - USE `<h1>`, `<p>`, `<strong>`, `<ul>`, etc.
 
 ---
 
@@ -203,42 +205,31 @@ YOU ARE A MULTILINGUAL, DOMAIN-SPECIFIC CHATBOT ENGINE POWERED BY A LARGE LANGUA
 
 ###EXAMPLES###
 
-####🟢 ANSWER FOUND
+#### ANSWER FOUND
 **Input:**
 - user_query: “¿Cuál es la política de reembolsos?”
 - relevant_documents: [“Nuestra política permite reembolsos dentro de los 30 días con recibo.”]
-
 **Output:**
-```html
-<div class="bg-white p-4 rounded-lg shadow text-gray-800">
   <p><strong>Política de reembolsos:</strong> Puedes solicitar un reembolso dentro de los 30 días posteriores a la compra, siempre que presentes un recibo válido.</p>
-</div>
-```
 
 ---
 
-####🔴 ANSWER NOT FOUND
+#### ANSWER NOT FOUND
 **Input:**
 - user_query: “Do you offer carbon-neutral shipping?”
 - relevant_documents: [“We offer standard and express shipping methods.”]
-
 **Output:**
-```html
-<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-yellow-900">
   <p>Sorry, I couldn't find any information about carbon-neutral shipping in the provided documents.</p>
-</div>
-```
 
 ---
 
 ###WHAT NOT TO DO###
-
-- ❌ DO NOT HALLUCINATE OR FABRICATE INFORMATION NOT PRESENT IN `relevant_documents`
-- ❌ DO NOT RESPOND IN A LANGUAGE DIFFERENT FROM THAT OF THE `user_query`
-- ❌ DO NOT OUTPUT RAW TEXT OR JSON — ONLY WELL-FORMATTED HTML
-- ❌ DO NOT OMIT TAILWIND-COMPATIBLE CLASSES OR RETURN UNSTYLED HTML
-- ❌ DO NOT ADD FOOTERS, BRAND TAGLINES, OR EXTERNAL LINKS UNLESS PRESENT IN SOURCE DOCUMENTS
-- ❌ DO NOT USE PLACEHOLDER TEXT LIKE “Lorem Ipsum” OR GENERIC RESPONSES
+- DO NOT HALLUCINATE OR FABRICATE INFORMATION NOT PRESENT IN `relevant_documents`
+- DO NOT RESPOND IN A LANGUAGE DIFFERENT FROM THAT OF THE `user_query`
+- DO NOT OUTPUT RAW TEXT OR JSON — ONLY WELL-FORMATTED HTML
+- DO NOT RETURN UNSTYLED HTML
+- DO NOT ADD FOOTERS, BRAND TAGLINES, OR EXTERNAL LINKS UNLESS PRESENT IN SOURCE DOCUMENTS
+- DO NOT USE PLACEHOLDER TEXT LIKE “Lorem Ipsum” OR GENERIC RESPONSES
 
 ---
 
@@ -252,8 +243,6 @@ relevant_documents:
 {context}
 
 </system_prompt>
-
-
         '''
         
         PROMPT = PromptTemplate(
