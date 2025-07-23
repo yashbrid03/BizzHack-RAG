@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from pinecone import Pinecone, ServerlessSpec
 from pinecone_text.sparse import BM25Encoder
@@ -8,7 +8,7 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_groq import ChatGroq
 from langchain.schema import BaseRetriever, Document
-from typing import List, Any
+from typing import Generator, List, Any
 from pydantic import Field
 import traceback
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -17,6 +17,8 @@ import uuid
 from langchain.document_loaders import CSVLoader, UnstructuredExcelLoader, WebBaseLoader
 import tempfile
 from pathlib import Path
+from langchain.callbacks.base import BaseCallbackHandler
+import json
 
 # Load environment variables
 load_dotenv()
@@ -36,12 +38,27 @@ model_name = "deepseek-r1-distill-llama-70b"
 
 pinecone_client = Pinecone(api_key=pinecone_api_key)
 
+# Custom streaming callback handler
+class StreamingCallbackHandler(BaseCallbackHandler):
+    def __init__(self):
+        self.tokens = []
+    
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.tokens.append(token)
+    
+    def get_tokens(self):
+        return self.tokens
+    
+    def clear_tokens(self):
+        self.tokens = []
+
 # Initialize LLM
 llm = ChatGroq(
     groq_api_key=groq_api_key,
     model_name=model_name,
     temperature=0.1,
-    max_tokens=1024
+    max_tokens=1024,
+    streaming=True
 )
 
 # LangChain setup
@@ -258,22 +275,45 @@ relevant_documents:
             top_k=3
         )
         
-        # Create QA chain
-        qa_chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=retriever,
-            chain_type_kwargs={"prompt": PROMPT},
-            return_source_documents=True
-        )
-        
-        print("RAG system initialized successfully!")
-        return qa_chain
+        return retriever, PROMPT
         
     except Exception as e:
         print(f"Error initializing RAG system: {e}")
         traceback.print_exc()
         return None
+
+# Initialize the RAG system on startup
+retriever, prompt = initialize_rag_system()
+
+def generate_stream_alternative(query: str, namespace: str) -> Generator[str, None, None]:
+    """Alternative streaming approach using direct LLM streaming"""
+    try:
+        # Update retriever namespace
+        retriever.namespace = namespace
+        
+        # Get relevant documents
+        docs = retriever.get_relevant_documents(query)
+        
+        # Format context
+        context = "\n\n".join([doc.page_content for doc in docs])
+        
+        # Format the prompt
+        formatted_prompt = prompt.format(question=query, context=context)
+        
+        isCOT = False
+        # Use the streaming method directly
+        for chunk in llm.stream(formatted_prompt):
+            if hasattr(chunk, 'content') and chunk.content:
+
+                if(chunk.content == '<think>' or chunk.content == '</think>'):
+                    isCOT = not isCOT
+                
+                if(not isCOT):
+                    yield f"data: {json.dumps({'token': chunk.content})}\n\n"
+            
+    except Exception as e:
+        print(f"Error in generate_stream_alternative: {e}")
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
 def batchify(lst, batch_size):
     """Split a list into batches of given size."""
@@ -286,8 +326,7 @@ qa_chain = initialize_rag_system()
 def query_rag():
     """Main query endpoint for RAG system"""
     try:
-        # Check if RAG system is initialized
-        if qa_chain is None:
+        if retriever is None or prompt is None:
             return jsonify({
                 'error': 'RAG system not initialized',
                 'message': 'Please restart the server or check your configuration'
@@ -314,34 +353,30 @@ def query_rag():
                 'message': 'Please provide a namespace in the request body'
             }), 400
         
-        # Get optional parameters
+        # Get namespace
         namespace = data['namespace']
         
-        # Update retriever parameters 
-        qa_chain.retriever.namespace = namespace
-        
-        # Process query
-        result = qa_chain({"query": query})
-        
-        # Format response
-        response = {
-            'query': query,
-            'answer': result['result'],
-            'source_documents': []
-        }
-        
-        # Add source documents if available
-        if 'source_documents' in result:
-            for i, doc in enumerate(result['source_documents']):
-                doc_info = {
-                    'index': i,
-                    'content': doc.page_content[:500] + '...' if len(doc.page_content) > 500 else doc.page_content,
-                    'metadata': doc.metadata,
-                    'score': doc.metadata.get('score', 0)
-                }
-                response['source_documents'].append(doc_info)
-        
-        return jsonify(response)
+        # Set proper headers for streaming
+        def generate():
+            yield "data: {\"status\": \"start\"}\n\n"
+            try:
+                for chunk in generate_stream_alternative(query, namespace):
+                    yield chunk
+                yield "data: {\"status\": \"complete\"}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            finally:
+                yield "data: [DONE]\n\n"
+
+        return Response(
+            stream_with_context(generate()),
+            mimetype='text/plain',
+            headers={
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'X-Accel-Buffering': 'no'  # Disable nginx buffering
+            }
+        )
         
     except Exception as e:
         print(f"Error processing query: {e}")
@@ -570,7 +605,7 @@ def upload_links():
     })
 
 if __name__ == '__main__':
-    if qa_chain is None:
+    if retriever is None or prompt is None:
         print("Failed to initialize RAG system. Please check your configuration.")
     else:
         print("RAG system ready!")
