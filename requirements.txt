@@ -7,8 +7,3 @@ langchain
 langchain_groq
 pydantic
 llama_parse
-<<<<<<< HEAD
-langchain_community
-=======
-langchain_community
->>>>>>> 6aeac2d (streaming merged)
