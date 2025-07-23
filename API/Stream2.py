@@ -223,6 +223,16 @@ user_query:
 relevant_documents:
 {context}
 
+Answer and then suggest 2-3 follow-up questions the user might ask. Format:
+<div>
+<div class="answer">...</div>
+<div class="suggestions">
+<ul>
+<li>Follow-up 1</li>
+<li>Follow-up 2</li>
+</ul>
+</div>
+</div>
 </system_prompt>
 
         '''
