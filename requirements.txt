@@ -7,3 +7,4 @@ langchain
 langchain_groq
 pydantic
 llama_parse
+langchain_community
