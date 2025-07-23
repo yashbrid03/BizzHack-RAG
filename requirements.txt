@@ -29,6 +29,7 @@ filelock==3.17.0
 filetype==1.2.0
 fitz==0.0.1.dev2
 Flask==3.1.1
+flask-cors==6.0.1
 frontend==0.0.3
 frozenlist==1.7.0
 fsspec==2025.5.1
@@ -71,7 +72,7 @@ networkx==3.4.2
 nibabel==5.3.2
 nipype==1.9.2
 nltk==3.9.1
-numpy==1.26.4
+numpy
 openpyxl==3.1.5
 orjson==3.10.18
 packaging==24.2
