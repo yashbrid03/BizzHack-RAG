@@ -34,7 +34,7 @@ llama_cloud_api_key = os.getenv("LLAMA_CLOUD_API_KEY")
 index_name = "bizzhack"
 dimension = 1024
 max_batch_size = 96
-model_name = "deepseek-r1-distill-llama-70b"
+model_name = "llama-3.3-70b-versatile"
 
 pinecone_client = Pinecone(api_key=pinecone_api_key)
 
