@@ -528,7 +528,7 @@ def upload_files():
 
     # with open("records_debug.json", "w") as f:
     #     json.dump(records, f, indent=2)
-    # index.upsert(vectors=records, namespace=namespace)
+    index.upsert(vectors=records, namespace=namespace)
 
     return jsonify({
         "message": f"{len(files)} files processed successfully",
