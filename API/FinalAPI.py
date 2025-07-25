@@ -71,7 +71,8 @@ text_splitter = RecursiveCharacterTextSplitter(
 llama_parser = LlamaParse(
     api_key=llama_cloud_api_key,
     result_type="markdown",
-    verbose=True
+    verbose=True,
+    disable_ocr=True
 )
 
 class PineconeHybridRetriever(BaseRetriever):
@@ -500,8 +501,15 @@ def upload_files():
         except Exception as embed_err:
             return jsonify({"error": f"Embedding failed: {embed_err}"}), 500
 
+    
+    
     records = []
     for i, (d, de, se) in enumerate(zip(split_docs, dense_embeddings, sparse_embeddings)):
+        # print(f"Sparse values: {se.get('sparse_values')}")
+        # print(f"Sparse indices: {se.get('sparse_indices')}")
+        if not se.get("sparse_indices") or not se.get("sparse_values"):
+            print(f"Skipping chunk {i}: Empty sparse embedding")
+            continue
         records.append({
             "id": str(uuid.uuid4()),
             "values": de['values'],
@@ -518,7 +526,9 @@ def upload_files():
             }
         })
 
-    index.upsert(vectors=records, namespace=namespace)
+    # with open("records_debug.json", "w") as f:
+    #     json.dump(records, f, indent=2)
+    # index.upsert(vectors=records, namespace=namespace)
 
     return jsonify({
         "message": f"{len(files)} files processed successfully",
