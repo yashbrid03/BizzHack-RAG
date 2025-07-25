@@ -284,7 +284,7 @@ Answer and then suggest 2-3 follow-up questions the user might ask. Format:
             index=index,
             pinecone_client=pinecone_client,
             namespace="example-namespace",
-            top_k=3
+            top_k=6
         )
         
         return retriever, PROMPT
@@ -305,9 +305,11 @@ def generate_stream_alternative(query: str, namespace: str) -> Generator[str, No
         
         # Get relevant documents
         docs = retriever.get_relevant_documents(query)
-        
+        print(docs)
         # Format context
         context = "\n\n".join([doc.page_content for doc in docs])
+
+        print(context)
         
         # Format the prompt
         formatted_prompt = prompt.format(question=query, context=context)
