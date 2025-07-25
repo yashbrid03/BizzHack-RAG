@@ -25,7 +25,7 @@ load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app,resources={r"/*": {"origins": "*"}})
 
 # Configuration
 pinecone_api_key = os.getenv("PINECONE_API_KEY")
