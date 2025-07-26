@@ -88,37 +88,6 @@ def initialize_sql_agent():
 agent = initialize_sql_agent()
 
 
-def generate_stream_alternative(query: str, namespace: str) -> Generator[str, None, None]:
-    """Alternative streaming approach using direct LLM streaming"""
-    try:
-        # Update retriever namespace
-        retriever.namespace = namespace
-        
-        # Get relevant documents
-        docs = retriever.get_relevant_documents(query)
-        print(docs)
-        # Format context
-        context = "\n\n".join([doc.page_content for doc in docs])
-
-        print(context)
-        
-        # Format the prompt
-        formatted_prompt = prompt.format(question=query, context=context)
-        
-        isCOT = False
-        # Use the streaming method directly
-        for chunk in llm.stream(formatted_prompt):
-            if hasattr(chunk, 'content') and chunk.content:
-
-                if(chunk.content == '<think>' or chunk.content == '</think>'):
-                    isCOT = not isCOT
-                
-                if(not isCOT):
-                    yield f"data: {json.dumps({'token': chunk.content})}\n\n"
-            
-    except Exception as e:
-        print(f"Error in generate_stream_alternative: {e}")
-        yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
 
 
@@ -145,7 +114,7 @@ def SQLQuery():
     except Exception as e:
         print(f"Error processing SQL query: {e}")
         traceback.print_exc()
-        print(str(e))
+        print(str)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
