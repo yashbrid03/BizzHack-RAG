@@ -37,7 +37,8 @@ llama_cloud_api_key = os.getenv("LLAMA_CLOUD_API_KEY")
 index_name = "bizzhack"
 dimension = 1024
 max_batch_size = 96
-model_name = "llama-3.3-70b-versatile"
+model_name = "deepseek-r1-distill-llama-70b"
+model_name2 = "llama-3.3-70b-versatile"  # For SQL agent, if needed
 # "deepseek-r1-distill-llama-70b"
 
 
@@ -64,6 +65,13 @@ llm = ChatGroq(
     temperature=0.1,
     max_tokens=1024,
     streaming=True
+)
+
+llm2 = ChatGroq(
+    groq_api_key=groq_api_key,
+    model_name=model_name2,
+    temperature=0.1,
+    max_tokens=1024
 )
 
 # LangChain setup
@@ -152,11 +160,11 @@ def initialize_sql_agent():
     try:
         MYSQL_URI = "mysql+pymysql://root:admin@127.0.0.1:3306/constructionstoredb"
         db = SQLDatabase.from_uri(MYSQL_URI)
-        toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+        toolkit = SQLDatabaseToolkit(db=db, llm=llm2)
         agent = create_sql_agent(
-            llm=llm,
+            llm=llm2,
             toolkit=toolkit,   # ← THIS IS THE KEY FIX
-            verbose=True,
+            verbose=False,
             top_k=10,
             handle_parsing_errors=True
         )
@@ -677,7 +685,9 @@ def SQLQuery():
         response = agent.invoke({"input": query})
         
         if response and 'output' in response:
-            return jsonify({"response": response['output']})
+            print("SQL Agent Response:", response['output'])
+            # return jsonify(result="hello")
+            return jsonify(response= response['output'])
         else:
             return jsonify({"error": "No valid response from agent"}), 500
     except Exception as e:

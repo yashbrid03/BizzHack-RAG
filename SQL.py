@@ -13,7 +13,7 @@ llm = ChatGroq(
     groq_api_key=groq_api_key,
     model_name=model_name,
     temperature=0.1,
-    max_tokens=1024,
+    max_tokens=1024
 )
 # root@localhost:3306
 MYSQL_URI = "mysql+pymysql://root:admin@127.0.0.1:3306/constructionstoredb"
@@ -32,5 +32,5 @@ agent = create_sql_agent(
 
 # agent.invoke({"input": "which materials are available in the store?"})
 response = agent.invoke({"input": "which materials are available in the store?"})
-print("Response:", response)
+print("Response:", response['output'])
 # print(response)
