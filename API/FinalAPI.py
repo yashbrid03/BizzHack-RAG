@@ -37,7 +37,9 @@ llama_cloud_api_key = os.getenv("LLAMA_CLOUD_API_KEY")
 index_name = "bizzhack"
 dimension = 1024
 max_batch_size = 96
-model_name = "deepseek-r1-distill-llama-70b"
+model_name = "llama-3.3-70b-versatile"
+# "deepseek-r1-distill-llama-70b"
+
 
 pinecone_client = Pinecone(api_key=pinecone_api_key)
 
@@ -276,7 +278,7 @@ YOU ARE A MULTILINGUAL, DOMAIN-SPECIFIC CHATBOT ENGINE POWERED BY A LARGE LANGUA
 ---
 
 chat_history:
-
+{history}
 
 user_query:
 {question}
@@ -321,7 +323,7 @@ Answer and then suggest 2-3 follow-up questions the user might ask. Format:
 # Initialize the RAG system on startup
 retriever, prompt = initialize_rag_system()
 
-def generate_stream_alternative(query: str, namespace: str) -> Generator[str, None, None]:
+def generate_stream_alternative(query: str, namespace: str, chat_history:str) -> Generator[str, None, None]:
     """Alternative streaming approach using direct LLM streaming"""
     try:
         # Update retriever namespace
@@ -336,7 +338,7 @@ def generate_stream_alternative(query: str, namespace: str) -> Generator[str, No
         print(context)
         
         # Format the prompt
-        formatted_prompt = prompt.format(question=query, context=context)
+        formatted_prompt = prompt.format(question=query, context=context, history=chat_history)
         
         isCOT = False
         # Use the streaming method directly
@@ -394,11 +396,19 @@ def query_rag():
         # Get namespace
         namespace = data['namespace']
         
+        if 'history' not in data:
+            return jsonify({
+                'error': 'Missing chat history',
+                'message': 'Please provide chat history in the request body'
+            }), 400
+        
+        chat_history = ''.join(str(d) for d in data['history']) 
+
         # Set proper headers for streaming
         def generate():
             yield "data: {\"status\": \"start\"}\n\n"
             try:
-                for chunk in generate_stream_alternative(query, namespace):
+                for chunk in generate_stream_alternative(query, namespace, chat_history):
                     yield chunk
                 yield "data: {\"status\": \"complete\"}\n\n"
             except Exception as e:
