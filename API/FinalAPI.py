@@ -429,8 +429,8 @@ def upload_files():
 
     namespace = request.form.get('namespace')
 
-    if not index_name or not namespace:
-        return jsonify({"error": "index_name and namespace are required"}), 400
+    if not namespace:
+        return jsonify({"error": "namespace is required"}), 400
 
     if 'files' not in request.files:
         return jsonify({"error": "No files uploaded"}), 400
@@ -570,8 +570,8 @@ def upload_links():
     namespace = data.get('namespace')
     urls = data.get('urls')
 
-    if not index_name or not namespace or not urls:
-        return jsonify({"error": "index_name, namespace, and urls are required"}), 400
+    if not namespace or not urls:
+        return jsonify({"error": "namespace and urls are required"}), 400
 
     if not isinstance(urls, list):
         return jsonify({"error": "urls should be a list of valid URLs"}), 400

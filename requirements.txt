@@ -9,3 +9,4 @@ pydantic
 llama_parse
 langchain_community
 bs4
+mysql-connector-python
